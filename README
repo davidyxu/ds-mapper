@@ -1,0 +1,37 @@
+PURPOSES
+  collects traffic of a http-base distributed system
+  easily distributable (small C agent)
+
+  self-documenting diagramming system
+  quick visualization of system health
+  potentially scaling control system
+
+COMPONENTS
+  Agent
+    C based tcp sniffer that finds http headers and collects data
+    registers known services running on server
+  Processing Server
+    express server based for collecting and processing data(possibly redis for data persistance?)
+    expose api to filter data collected
+  Visualizer
+    d3.js based frontend for server w/ directional force diagram
+      hover nodes: see traffic & health of individual services (separated w/ ip addresses)
+      hover arrows: see traffic & health of connection between services
+
+REQUIREMENTS
+  libcurl
+  libpcap
+  nodejs
+  d3.js
+
+BUILD AGENT
+  cc agent.c dev_addr.c http_post.c -lpcap -lcurl -o agent
+
+RUN SERVER
+  npm install
+  node server.js
+
+REFERENCES
+  http://www.tcpdump.org/sniffex.c
+  http://curl.haxx.se/libcurl/c/http-post.html
+  http://bl.ocks.org/d3noob/5155181
