@@ -25,7 +25,7 @@ REQUIREMENTS
   d3.js
 
 BUILD AGENT
-  cc agent.c dev_addr.c http_post.c -lpcap -lcurl -o agent
+  cc agent.c dev_addr.c http_post.c json_event.c json_batch.c -lpcap -lcurl -o agent
 
 RUN SERVER
   npm install
