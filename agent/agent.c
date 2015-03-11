@@ -7,14 +7,18 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include <ifaddrs.h>
 
 #include "dev_addr.h"
 #include "http_post.h"
+#include "json_event.h"
+#include "pcap_conf.h"
 
 #define MAX_URL_LEN 1024
 #define SNAP_LEN 16 * 1024
+#define BATCH_LEN 64 * 1024
 #define ETHERNET_LEN 14
 #define ETHERNET_ADDR_LEN 6
 
@@ -54,57 +58,11 @@ struct tcp_header {
 
 #define TH_OFF(th) ((th->offset & 0xf0) >> 4)
 
-struct pcap_conf {
-  const struct in_addr dev_addr;
-  char url[1024];
-};
-
 void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 
 const int get_http_code(const u_char *payload, int len);
 const char * get_http_method(const u_char *payload, int len);
 void get_ascii_payload(char *buffer, const u_char *payload, int len);
-
-const int append_json_str(char *buffer, const u_int buf_len, int offset, const char *key, const char *value);
-const int append_json_int(char *buffer, const u_int buf_len, int offset, const char *key, const u_int value);
-const int setup_json_for_append(char *buffer, const u_int buf_len, int offset);
-const int close_json(char *buffer, const u_int buf_len, int offset);
-
-const int append_json_str(char *buffer, const u_int buf_len, int offset, const char *key, const char *value)
-{
-  offset = setup_json_for_append(buffer, buf_len, offset);
-  offset += snprintf(buffer + offset, buf_len - offset, "\"%s\":\"%s\"", key, value);
-
-  return offset;
-}
-
-const int append_json_int(char *buffer, const u_int buf_len, int offset, const char *key, const u_int value)
-{
-  offset = setup_json_for_append(buffer, buf_len, offset);
-  offset += snprintf(buffer +offset, buf_len - offset, "\"%s\":%d", key, value);
-
-  return offset;
-}
-
-const int setup_json_for_append(char *buffer, const u_int buf_len, int offset)
-{
-  if (offset == 0)
-    offset += snprintf(buffer, buf_len, "{");
-  else
-    offset += snprintf(buffer + offset, buf_len - offset, ",");
-
-  return offset;
-}
-
-const int close_json(char *buffer, const u_int buf_len, int offset)
-{
-  if (offset == 0)
-    offset += snprintf(buffer, buf_len, "{}\0");
-  else
-    offset += snprintf(buffer + offset, buf_len - offset, "}\0");
-
-  return offset;
-}
 
 const int get_http_code(const u_char *payload, int len)
 {
@@ -181,6 +139,9 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   conf = (const struct pcap_conf *)args;
   static int count = 1;
 
+  static char batch_buf[BATCH_LEN];
+  static int batch_offset = 0;
+
   const struct ethernet_header *ethernet;
   const struct ip_header *ip;
   const struct tcp_header *tcp;
@@ -205,53 +166,58 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   if (payload_len == 0)
     return;
 
-  const char *direction;
   const char *http_method = get_http_method(payload, payload_len);
   const int http_code = get_http_code(payload, payload_len);
 
   if (!http_method && !http_code)
     return;
 
+  /*
+  const char *direction;
   if (ip->src_ip_addr.s_addr == conf->dev_addr.s_addr)
     direction = "out";
   else if (ip->dst_ip_addr.s_addr == conf->dev_addr.s_addr)
     direction = "in";
-  else
-    direction = "unknown";
+  */
 
   printf("\n\nPacket #%d:\n", ++count);
   printf("Packet ID:    %hu\n", ip->id);
-  printf("Direction:    %s\n", direction);
   printf("From:         %s:%d\n", inet_ntoa(ip->src_ip_addr), ntohs(tcp->src_port));
   printf("To:           %s:%d\n", inet_ntoa(ip->dst_ip_addr), ntohs(tcp->dst_port));
   printf("Seq #:        %u\n", tcp->seq_num);
   printf("Ack #:        %u\n", tcp->ack_num);
 
   if (http_method)
-    printf("HTTP Method   %s\n", http_method);
+    printf("HTTP Method:  %s\n", http_method);
   if (http_code)
-    printf("HTTP Code     %d\n", http_code);
+    printf("HTTP Code:    %d\n", http_code);
 
-  printf("\nPayload (%d bytes):\n", payload_len);
+  printf("Payload Size: %d bytes\n", payload_len);
 
   char payload_buffer[(2 * payload_len) + 1]; /* use double payload_len in case of escaped characters */
   get_ascii_payload(payload_buffer, payload, payload_len);
 
   const u_int buf_len = SNAP_LEN + 1024; /* give extra space for json formatting */
-  char json_buffer[buf_len];
-  int offset = 0;
+  char event_buf[buf_len];
+  int event_offset = 0;
 
-  offset = append_json_str(json_buffer, buf_len, offset, "direction", direction);
-  offset = append_json_str(json_buffer, buf_len, offset, "src_ip", inet_ntoa(ip->src_ip_addr));
-  offset = append_json_int(json_buffer, buf_len, offset, "src_port", ntohs(tcp->src_port));
-  offset = append_json_str(json_buffer, buf_len, offset, "dst_ip", inet_ntoa(ip->dst_ip_addr));
-  offset = append_json_int(json_buffer, buf_len, offset, "dst_port", ntohs(tcp->dst_port));
-  offset = append_json_str(json_buffer, buf_len, offset, "payload", payload_buffer);
-  offset = close_json(json_buffer, buf_len, offset);
+  /* build event json */
+  event_offset = append_event_json_int(event_buf, buf_len, event_offset, "timestamp", (int)time(NULL));
+  event_offset = append_event_json_str(event_buf, buf_len, event_offset, "src_ip", inet_ntoa(ip->src_ip_addr));
+  event_offset = append_event_json_int(event_buf, buf_len, event_offset, "src_port", ntohs(tcp->src_port));
+  event_offset = append_event_json_str(event_buf, buf_len, event_offset, "dst_ip", inet_ntoa(ip->dst_ip_addr));
+  event_offset = append_event_json_int(event_buf, buf_len, event_offset, "dst_port", ntohs(tcp->dst_port));
 
-  printf("\n\nJSON: %s\n\n", json_buffer);
-  printf("%s\n\n\n", conf->url);
-  curl_post(conf->url, json_buffer);
+  if (http_method)
+    event_offset = append_event_json_str(event_buf, buf_len, event_offset, "http_method", http_method);
+  if (http_code)
+    event_offset = append_event_json_int(event_buf, buf_len, event_offset, "http_code", http_code);
+
+  event_offset = append_event_json_str(event_buf, buf_len, event_offset, "payload", payload_buffer);
+  event_offset = close_event_json(event_buf, buf_len, event_offset);
+
+  /* append to batch json */
+  batch_offset = append_batch_event(batch_buf, BATCH_LEN, batch_offset, event_buf, event_offset, conf);
 
   return;
 }
@@ -261,13 +227,10 @@ int main(int argc, char **argv)
   struct in_addr dev_addr;
   char *dev = NULL;
 
-  char *host_url = "33.33.33.10:9999";
 
   char event_url[MAX_URL_LEN];
   char register_url[MAX_URL_LEN];
 
-  sprintf(event_url, "http://%s/event", host_url);
-  sprintf(register_url, "http://%s/register", host_url);
 
   char pcap_errbuf[PCAP_ERRBUF_SIZE];
   pcap_t *handle;
@@ -277,8 +240,15 @@ int main(int argc, char **argv)
   bpf_u_int32 mask;
   bpf_u_int32 net;
 
-  if (argc == 2) {
-    dev = argv[1];
+  if (argc < 2) {
+    printf("usage: agent <url> <dev>\n");
+    return 1;
+  } else {
+    sprintf(event_url, "http://%s/event", argv[1]);
+    sprintf(register_url, "http://%s/register", argv[1]);
+  }
+  if (argc == 3) {
+    dev = argv[2];
   } else {
     dev = pcap_lookupdev(pcap_errbuf);
     if (dev == NULL) {

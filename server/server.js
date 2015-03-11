@@ -27,8 +27,48 @@ app.get('/', function (req, res) {
 //});
 
 app.post('/event', bodyParser.json(), function(req, res) {
-  db.push(req.body);
-  console.log(db);
+  if (!req.body)
+    res.status(400).send("bad event");
+
+  console.log("Received", req.body.data, "http events from,", req.body.dev_ip);
+
+  if (req.body.data) {
+    for (var i = 0; i < req.body.data.length; i++) {
+      var datum = req.body.data[i];
+
+      var rawHeader = datum.payload.split("\n\n")[0];
+      var headerArr = rawHeader.split("\n");
+      var firstLine = headerArr.shift().split(" ");
+
+      var headers = {}
+      headerArr.forEach(function(header) {
+        var split_header = header.split(": ");
+        headers[split_header[0]] = split_header[1];
+      });
+
+      var httpEvent = {
+        origin: req.body.dev_ip,
+        src: datum.src_ip + ":" + datum.src_port,
+        dst: datum.dst_ip + ":" + datum.dst_port,
+        timestamp: datum.timestamp
+      }
+
+      if (datum.http_method) {
+        httpEvent.method = datum.http_method;
+        httpEvent.path = firstLine[1];
+        httpEvent.version = firstLine[2];
+      }
+
+      if (datum.http_code) {
+        httpEvent.code = datum.code;
+      }
+
+      httpEvent.headers = headers;
+
+      db.push(httpEvent);
+    }
+  }
+
   res.send('ok');
 });
 
