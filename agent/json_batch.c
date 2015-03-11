@@ -3,6 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include "pcap_conf.h"
 #include "http_post.h"
@@ -34,7 +35,15 @@ int append_batch_event(char *batch_buf, const u_int batch_buf_len, int offset, c
     offset += snprintf(batch_buf + offset, batch_buf_len - offset, "%s", event_buf);
   } else if (!check_batch_fit(batch_buf_len, offset, event_buf_len)) {
     close_batch(batch_buf, batch_buf_len, offset);
-    send_batch(batch_buf, conf);
+
+    time_t cur_time;
+    time(&cur_time);
+    printf("%s", ctime(&cur_time));
+
+    printf("Sending events to %s, received %d.\n",
+      conf->url,
+      send_batch(batch_buf, conf)
+    );
 
     offset = init_batch(batch_buf, batch_buf_len, conf);
     offset += snprintf(batch_buf + offset, batch_buf_len - offset, "%s", event_buf);

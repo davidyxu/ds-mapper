@@ -31,7 +31,7 @@ app.get('/', function (req, res) {
 
 app.post('/event', bodyParser.json(), function(req, res) {
   if (!req.body)
-    res.status(400).send("bad event");
+    res.status(400).send("bad data\n");
 
   console.log("Received", req.body.data, "http events from,", req.body.dev_ip);
 
@@ -79,7 +79,7 @@ app.post('/event', bodyParser.json(), function(req, res) {
     }
   }
 
-  res.send('ok');
+  res.send('ok\n');
 });
 
 app.post('/register', bodyParser.json(), function(req, res) {
