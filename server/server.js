@@ -1,6 +1,9 @@
 var express = require('express');
 var app = express();
+
 var bodyParser = require('body-parser');
+var qs = require('querystring');
+
 var db = [];
 
 app.get('/', function (req, res) {
@@ -59,7 +62,7 @@ app.post('/event', bodyParser.json(), function(req, res) {
         var uri = firstLine[1].split("?");
         httpEvent.path = uri[0];
         if (uri[1])
-          httpEvent.qs = uri[1];
+          httpEvent.query = qs.parse(uri[1]);
 
         httpEvent.version = firstLine[2];
       }
