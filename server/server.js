@@ -43,12 +43,6 @@ app.post('/event', bodyParser.json(), function(req, res) {
       var headerArr = rawHeader.split("\n");
       var firstLine = headerArr.shift().split(" ");
 
-      var headers = {}
-      headerArr.forEach(function(header) {
-        var split_header = header.split(": ");
-        headers[split_header[0]] = split_header[1];
-      });
-
       var httpEvent = {
         origin: req.body.dev_ip,
         src: datum.src_ip + ":" + datum.src_port,
@@ -71,7 +65,15 @@ app.post('/event', bodyParser.json(), function(req, res) {
         httpEvent.code = datum.code;
       }
 
-      httpEvent.headers = headers;
+      if (headerArr.length) {
+        var headers = {}
+        headerArr.forEach(function(header) {
+          var split_header = header.split(": ");
+          headers[split_header[0]] = split_header[1];
+        });
+
+        httpEvent.headers = headers;
+      }
 
       db.push(httpEvent);
     }
