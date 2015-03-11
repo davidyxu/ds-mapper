@@ -55,7 +55,12 @@ app.post('/event', bodyParser.json(), function(req, res) {
 
       if (datum.http_method) {
         httpEvent.method = datum.http_method;
-        httpEvent.path = firstLine[1];
+
+        var uri = firstLine[1].split("?");
+        httpEvent.path = uri[0];
+        if (uri[1])
+          httpEvent.qs = uri[1];
+
         httpEvent.version = firstLine[2];
       }
 
