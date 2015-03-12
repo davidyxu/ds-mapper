@@ -32,7 +32,7 @@ app.get('/', function (req, res) {
 app.post('/event', bodyParser.json(), function(req, res) {
   if (!req.body)
     res.status(400).send("bad data\n");
-  console.log("Received", req.body.data.length, "http events from,", req.body.dev_ip);
+  console.log(new Date().toISOString(), ":: Received", req.body.data.length, "http events from", req.body.dev_ip);
   console.log("Services:", req.body.services);
 
   if (req.body.data) {
