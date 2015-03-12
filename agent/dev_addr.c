@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
-struct in_addr get_dev_addr(char *dev)
+struct in_addr get_dev_addr(const char * const dev)
 {
     int fd;
     struct ifreq addr;

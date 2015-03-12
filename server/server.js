@@ -32,10 +32,11 @@ app.get('/', function (req, res) {
 app.post('/event', bodyParser.json(), function(req, res) {
   if (!req.body)
     res.status(400).send("bad data\n");
-  console.log(new Date().toISOString(), ":: Received", req.body.data.length, "http events from", req.body.dev_ip);
-  console.log("Services:", req.body.services);
 
   if (req.body.data) {
+    console.log(new Date().toISOString(), ":: Received", req.body.data.length, "http events from", req.body.dev_ip);
+    console.log("Services:", req.body.services);
+
     for (var i = 0; i < req.body.data.length; i++) {
       var datum = req.body.data[i];
 
@@ -52,18 +53,20 @@ app.post('/event', bodyParser.json(), function(req, res) {
 
       if (datum.http_method) {
         httpEvent.method = datum.http_method;
+        if (firstLine.length) {
+          var uri = firstLine[1].split("?");
+          httpEvent.path = uri[0];
 
-        var uri = firstLine[1].split("?");
-        httpEvent.path = uri[0];
-        if (uri[1])
-          httpEvent.query = qs.parse(uri[1]);
+          if (uri[1])
+            httpEvent.query = qs.parse(uri[1]);
 
-        httpEvent.version = firstLine[2];
+          httpEvent.version = firstLine[2];
+        }
+
       }
 
-      if (datum.http_code) {
+      if (datum.http_code)
         httpEvent.code = datum.code;
-      }
 
       if (headerArr.length) {
         var headers = {}

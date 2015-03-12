@@ -1,5 +1,6 @@
 #include <pcap.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
@@ -12,9 +13,10 @@
 #include <ifaddrs.h>
 
 #include "dev_addr.h"
+#include "pcap_conf.h"
 #include "http_post.h"
 #include "json_event.h"
-#include "pcap_conf.h"
+#include "json_batch.h"
 #include "network_struct.h"
 
 #define SNAP_LEN 16 * 1024
@@ -22,22 +24,22 @@
 
 void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 
-const int get_http_code(const u_char *payload, int len);
-const char * get_http_method(const u_char *payload, int len);
-void get_ascii_payload(char *buffer, const u_char *payload, int len);
+const int get_http_code(const char * const payload, const int len);
+const char * get_http_method(const char * const payload, const int len);
+void get_ascii_payload(char * const buffer, const char *payload, const int len);
 
-const int get_http_code(const u_char *payload, int len)
+const int get_http_code(const char * const payload, const int len)
 {
   if (len >= 12 && (strncmp("HTTP/", payload, 5) == 0)) {
     char http_code[5];
     memcpy(http_code, &payload[9], 4);
-    http_code[5] = '\0';
+    http_code[4] = '\0';
     return atoi(http_code);
   }
   return 0;
 }
 
-const char * get_http_method(const u_char *payload, int len)
+const char * get_http_method(const char * const payload, const int len)
 {
   if (len >= 7) {
     if (!strncmp("GET", payload, 3)) {
@@ -62,7 +64,7 @@ const char * get_http_method(const u_char *payload, int len)
   return NULL;
 }
 
-void get_ascii_payload(char *buffer, const u_char *payload, int len)
+void get_ascii_payload(char * const buffer, const char *payload, const int len)
 {
   int i;
   const char *pay_ptr = payload;
@@ -123,7 +125,7 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   if (tcp_len < 20)
     return;
 
-  payload = (u_char *)(packet + ETHERNET_LEN + ip_len + tcp_len);
+  payload = (char *)(packet + ETHERNET_LEN + ip_len + tcp_len);
   payload_len = ntohs(ip->len) - ip_len + tcp_len;
   if (payload_len == 0)
     return;
@@ -141,6 +143,7 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   else if (ip->dst_ip_addr.s_addr == conf->dev_addr.s_addr)
     direction = "in";
 
+  */
   printf("\n\nPacket #%d:\n", ++count);
   printf("Packet ID:    %hu\n", ip->id);
   printf("From:         %s:%d\n", inet_ntoa(ip->src_ip_addr), ntohs(tcp->src_port));
@@ -155,7 +158,6 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
 
   printf("Payload Size: %d bytes\n", payload_len);
 
-  */
   char payload_buffer[(2 * payload_len) + 1]; /* use double payload_len in case of escaped characters */
   get_ascii_payload(payload_buffer, payload, payload_len);
 
@@ -208,8 +210,6 @@ int main(int argc, char **argv)
     int i;
     long int port;
     char * str;
-    const int service_size = (int)sizeof(struct service);
-    printf("%d\n", service_size);
     for (i = 2; i < argc; ++i) {
       port = strtol(argv[i], &str, 10);
       if (port) {
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
           printf("Specify the name of the service\n");
           return 1;
         } else {
-          printf("Registering port %ld as %s\n", port, str+1);
+          printf("Registering port %ld as \'%s\'\n", port, str+1);
           conf.services[conf.service_len].port = port;
           snprintf(conf.services[conf.service_len].name, SERVICE_NAME_LEN, "%s", str+1);
           ++conf.service_len;
@@ -230,13 +230,6 @@ int main(int argc, char **argv)
           dev = str;
         }
       }
-    }
-  }
-
-  if (conf.service_len) {
-    int i;
-    for (i = 0; i < conf.service_len; ++i) {
-      printf("%d: %hu=%s\n", i, conf.services[i].port, conf.services[i].name);
     }
   }
 

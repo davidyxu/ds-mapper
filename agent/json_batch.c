@@ -8,7 +8,7 @@
 #include "pcap_conf.h"
 #include "http_post.h"
 
-int init_batch(char *batch_buf, const u_int buf_len, struct pcap_conf *conf)
+int init_batch(char * const batch_buf, const u_int buf_len, const struct pcap_conf * conf)
 {
   int offset = snprintf(batch_buf, buf_len, "{\"dev_ip\":\"%s\",\"services\":{", inet_ntoa(conf->dev_addr));
 
@@ -27,17 +27,17 @@ int check_batch_fit(const u_int batch_buf_len, int offset, const u_int event_buf
   return ((int)batch_buf_len - offset - (int)event_buf_len) > 3; /* leave enough room for ]}\0 */
 }
 
-void close_batch(char *batch_buf, const u_int buf_len, int offset)
+void close_batch(char * const batch_buf, const u_int buf_len, int offset)
 {
   snprintf(batch_buf + offset, buf_len - offset, "]}");
 }
 
-int send_batch(char *batch_buf, struct pcap_conf *conf)
+int send_batch(char * const batch_buf, const struct pcap_conf * const conf)
 {
   return curl_post(conf->url, batch_buf);
 }
 
-int append_batch_event(char *batch_buf, const u_int batch_buf_len, int offset, char *event_buf, const u_int event_buf_len, struct pcap_conf *conf)
+int append_batch_event(char * const batch_buf, const u_int batch_buf_len, int offset, char * const event_buf, const u_int event_buf_len, const struct pcap_conf * conf)
 {
   if (offset == 0) {
     offset = init_batch(batch_buf, batch_buf_len, conf);
