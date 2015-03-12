@@ -17,7 +17,6 @@
 #include "pcap_conf.h"
 #include "network_struct.h"
 
-#define MAX_URL_LEN 1024
 #define SNAP_LEN 16 * 1024
 #define BATCH_LEN 64 * 1024
 
@@ -187,13 +186,8 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
 
 int main(int argc, char **argv)
 {
-  struct in_addr dev_addr;
+  struct pcap_conf conf;
   char *dev = NULL;
-
-
-  char event_url[MAX_URL_LEN];
-  char register_url[MAX_URL_LEN];
-
 
   char pcap_errbuf[PCAP_ERRBUF_SIZE];
   pcap_t *handle;
@@ -204,15 +198,49 @@ int main(int argc, char **argv)
   bpf_u_int32 net;
 
   if (argc < 2) {
-    printf("usage: agent <url> <dev>\n");
+    printf("usage: agent <url> [<port>=<service>...] <dev>\n");
     return 1;
   } else {
-    sprintf(event_url, "http://%s/event", argv[1]);
-    sprintf(register_url, "http://%s/register", argv[1]);
+    snprintf(conf.url, PCAP_URL_LEN, "http://%s/event", argv[1]);
   }
-  if (argc == 3) {
-    dev = argv[2];
-  } else {
+  if (argc > 2) {
+    conf.service_len = 0;
+    int i;
+    long int port;
+    char * str;
+    const int service_size = (int)sizeof(struct service);
+    printf("%d\n", service_size);
+    for (i = 2; i < argc; ++i) {
+      port = strtol(argv[i], &str, 10);
+      if (port) {
+        if (*str == '\0') {
+          printf("Specify the name of the service\n");
+          return 1;
+        } else {
+          printf("Registering port %ld as %s\n", port, str+1);
+          conf.services[conf.service_len].port = port;
+          snprintf(conf.services[conf.service_len].name, SERVICE_NAME_LEN, "%s", str+1);
+          ++conf.service_len;
+        }
+      } else {
+        if (dev) {
+          printf("Only one device can be specified!\n");
+          return 1;
+        } else {
+          dev = str;
+        }
+      }
+    }
+  }
+
+  if (conf.service_len) {
+    int i;
+    for (i = 0; i < conf.service_len; ++i) {
+      printf("%d: %hu=%s\n", i, conf.services[i].port, conf.services[i].name);
+    }
+  }
+
+  if (!dev) {
     dev = pcap_lookupdev(pcap_errbuf);
     if (dev == NULL) {
       fprintf(stderr, "Couldn't find default device: %s\n", pcap_errbuf);
@@ -237,10 +265,10 @@ int main(int argc, char **argv)
     return 1;
   }
 
-  dev_addr = get_dev_addr(dev);
+  conf.dev_addr = get_dev_addr(dev);
 
   printf("Device: %s\n", dev);
-  printf("IP:     %s\n", inet_ntoa(dev_addr));
+  printf("IP:     %s\n", inet_ntoa(conf.dev_addr));
 
   if (pcap_compile(handle, &fp, "tcp", 1, net) == -1) {
     fprintf(stderr, "Couldn't parse filter...");
@@ -251,9 +279,6 @@ int main(int argc, char **argv)
     fprintf(stderr, "Couldn't install filter: %s\n", pcap_geterr(handle));
     return 1;
   }
-
-  struct pcap_conf conf = { dev_addr };
-  memcpy(conf.url, event_url, MAX_URL_LEN);
 
   pcap_loop(handle, -1, handle_packet, (u_char *)&conf);
 

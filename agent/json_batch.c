@@ -10,7 +10,16 @@
 
 int init_batch(char *batch_buf, const u_int buf_len, struct pcap_conf *conf)
 {
-  return snprintf(batch_buf, buf_len, "{\"dev_ip\":\"%s\", \"data\": [", inet_ntoa(conf->dev_addr));
+  int offset = snprintf(batch_buf, buf_len, "{\"dev_ip\":\"%s\",\"services\":{", inet_ntoa(conf->dev_addr));
+
+  int i;
+  for (i = 0; i < conf->service_len; ++i) {
+    offset += snprintf(batch_buf + offset, buf_len - offset, "\"%s\":%hu,", conf->services[i].name, conf->services[i].port);
+  }
+
+  --offset; // -1 to cut off trailing comma
+  offset += snprintf(batch_buf + offset, buf_len - offset, "},\"data\":[");
+  return offset;
 }
 
 int check_batch_fit(const u_int batch_buf_len, int offset, const u_int event_buf_len)

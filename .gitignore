@@ -1,2 +1,3 @@
 server/node_modules
+agent/agent_*
 *.swp
