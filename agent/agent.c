@@ -143,7 +143,6 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   else if (ip->dst_ip_addr.s_addr == conf->dev_addr.s_addr)
     direction = "in";
 
-  */
   printf("\n\nPacket #%d:\n", ++count);
   printf("Packet ID:    %hu\n", ip->id);
   printf("From:         %s:%d\n", inet_ntoa(ip->src_ip_addr), ntohs(tcp->src_port));
@@ -157,6 +156,8 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
     printf("HTTP Code:    %d\n", http_code);
 
   printf("Payload Size: %d bytes\n", payload_len);
+
+  */
 
   char payload_buffer[(2 * payload_len) + 1]; /* use double payload_len in case of escaped characters */
   get_ascii_payload(payload_buffer, payload, payload_len);

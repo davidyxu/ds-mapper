@@ -5,6 +5,7 @@ var bodyParser = require('body-parser');
 var qs = require('querystring');
 
 var db = [];
+var simple = [];
 
 app.get('/', function (req, res) {
   res.sendFile("index.html", {root: __dirname});
@@ -34,8 +35,11 @@ app.post('/event', bodyParser.json(), function(req, res) {
     res.status(400).send("bad data\n");
 
   if (req.body.data) {
-    console.log(new Date().toISOString(), ":: Received", req.body.data.length, "http events from", req.body.dev_ip);
-    console.log("Services:", req.body.services);
+    var agent_ip = req.body.dev_ip;
+    var services = req.body.services;
+
+    console.log(new Date().toISOString(), ":: Received", req.body.data.length, "http events from", agent_ip);
+    console.log("Services:", services);
 
     for (var i = 0; i < req.body.data.length; i++) {
       var datum = req.body.data[i];
@@ -49,6 +53,18 @@ app.post('/event', bodyParser.json(), function(req, res) {
         src: datum.src_ip + ":" + datum.src_port,
         dst: datum.dst_ip + ":" + datum.dst_port,
         timestamp: datum.timestamp
+      }
+
+      var simpleEvent = {
+        source: datum.src_ip,
+        target: datum.dst_ip,
+        type: datum.http_method || datum.http_code
+      }
+      for (key in req.body) {
+        if (datum.src_ip == agent_ip && services.hasOwnProperty(datum.src_port))
+          simpleEvent.source = services[datum.src_port];
+        else if (datum.dst_ip == agent_ip && services.hasOwnProperty(datum.dst_port))
+          simpleEvent.target = services[datum.dst_port];
       }
 
       if (datum.http_method) {
@@ -66,7 +82,7 @@ app.post('/event', bodyParser.json(), function(req, res) {
       }
 
       if (datum.http_code)
-        httpEvent.code = datum.code;
+        httpEvent.code = datum.http_code;
 
       if (headerArr.length) {
         var headers = {}
@@ -79,6 +95,7 @@ app.post('/event', bodyParser.json(), function(req, res) {
       }
 
       db.push(httpEvent);
+      simple.push(simpleEvent);
     }
   }
 
@@ -90,7 +107,7 @@ app.post('/register', bodyParser.json(), function(req, res) {
 });
 
 app.get('/data', function(req, res) {
-  res.send(db);
+  res.send(simple);
 });
 
 var server = app.listen(9999, function () {
