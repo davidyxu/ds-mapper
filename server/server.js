@@ -21,12 +21,27 @@ app.post('/event', bodyParser.json(), function(req, res) {
 });
 
 app.get('/data', function(req, res) {
-  EventCollection.find({}, function(err, docs) {
+  console.log(req.query)
+
+  var query = req.query;
+
+  EventCollection.find(query, function(err, docs) {
     console.log(err);
     console.log(docs);
 
     res.send(docs);
   });
+});
+
+app.post('/register', function(req, res) {
+  // { service_name: {
+  //   ip: XXX.XXX.XXX.XXX
+  //   port: opt
+  //   timestamp_start: opt
+  //   timestamp_end: opt
+  //   }
+  // }
+  // updates all source/target to service name
 });
 
 EventCollection.init(function() {
