@@ -8,7 +8,7 @@
 #include "pcap_conf.h"
 #include "http_post.h"
 
-int init_batch(char * const batch_buf, const u_int buf_len, const struct pcap_conf * conf)
+int init_batch(char * const batch_buf, const u_int buf_len, const struct pcap_conf * const conf)
 {
   int offset = snprintf(batch_buf, buf_len, "{\"dev_ip\":\"%s\",\"services\":{", inet_ntoa(conf->dev_addr));
 
@@ -37,7 +37,7 @@ int send_batch(char * const batch_buf, const struct pcap_conf * const conf)
   return curl_post(conf->url, batch_buf);
 }
 
-int append_batch_event(char * const batch_buf, const u_int batch_buf_len, int offset, char * const event_buf, const u_int event_buf_len, const struct pcap_conf * conf)
+int append_batch_event(char * const batch_buf, const u_int batch_buf_len, int offset, char * const event_buf, const u_int event_buf_len, const struct pcap_conf * const conf)
 {
   if (offset == 0) {
     offset = init_batch(batch_buf, batch_buf_len, conf);

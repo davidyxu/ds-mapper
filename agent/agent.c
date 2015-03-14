@@ -133,15 +133,14 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   const char *http_method = get_http_method(payload, payload_len);
   const int http_code = get_http_code(payload, payload_len);
 
+  // ensure it's the start of a http packet
+  // TODO: move this parsing logic into node server
   if (!http_method && !http_code)
     return;
 
-  /*
-  const char *direction;
-  if (ip->src_ip_addr.s_addr == conf->dev_addr.s_addr)
-    direction = "out";
-  else if (ip->dst_ip_addr.s_addr == conf->dev_addr.s_addr)
-    direction = "in";
+  // ensure it's a relevant packet (registered service)
+  if (!match_services(conf, ip->src_ip_addr, tcp->src_port) && !match_services(conf, ip->dst_ip_addr, tcp->dst_port))
+    return;
 
   printf("\n\nPacket #%d:\n", ++count);
   printf("Packet ID:    %hu\n", ip->id);
@@ -150,6 +149,7 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   printf("Seq #:        %u\n", tcp->seq_num);
   printf("Ack #:        %u\n", tcp->ack_num);
 
+  // TODO: remove this once parsing logic moved into node server
   if (http_method)
     printf("HTTP Method:  %s\n", http_method);
   if (http_code)
@@ -157,7 +157,6 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
 
   printf("Payload Size: %d bytes\n", payload_len);
 
-  */
 
   char payload_buffer[(2 * payload_len) + 1]; /* use double payload_len in case of escaped characters */
   get_ascii_payload(payload_buffer, payload, payload_len);
@@ -211,7 +210,7 @@ int main(int argc, char **argv)
     int i;
     long int port;
     char * str;
-    for (i = 2; i < argc; ++i) {
+    for (i = 1; i < argc; ++i) {
       port = strtol(argv[i], &str, 10);
       if (port) {
         if (*str == '\0') {
