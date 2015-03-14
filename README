@@ -24,8 +24,9 @@ REQUIREMENTS
   nodejs
   d3.js
 
-BUILD AGENT
-  cc agent.c dev_addr.c http_post.c json_event.c json_batch.c -lpcap -lcurl -o agent
+AGENT
+  BUILD: cc agent.c dev_addr.c pcap_conf.c http_post.c json_event.c json_batch.c -lpcap -lcurl -o agent
+  USAGE: ./agent <PORT_1=SERVICE_NAME_1> ... <PORT_N=SERVICE_NAME_N> <dev> (dev optional)
 
 RUN SERVER
   npm install
