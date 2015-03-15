@@ -25,7 +25,7 @@ REQUIREMENTS
   d3.js
 
 AGENT
-  BUILD: cc agent.c pcap_conf.c dev_addr.c http_packet_parser.c http_post.c json_event.c json_batch.c -lpcap -lcurl -o agent_mac
+  BUILD: cc -Wall agent.c pcap_conf.c dev_addr.c http_packet_parser.c http_post.c json_event.c json_batch.c -lpcap -lcurl -o agent_mac
   USAGE: ./agent <PORT_1=SERVICE_NAME_1> ... <PORT_N=SERVICE_NAME_N> <dev> (dev optional)
 
 RUN SERVER

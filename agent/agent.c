@@ -34,7 +34,6 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   static char batch_buf[BATCH_LEN];
   static int batch_offset = 0;
 
-  const struct ethernet_header *ethernet;
   const struct ip_header *ip;
   const struct tcp_header *tcp;
   const char *payload;

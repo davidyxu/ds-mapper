@@ -1,6 +1,8 @@
+#include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-const int is_http_res(const char * const payload, const int len)
+int is_http_res(const char * const payload, const int len)
 {
   if (len >= 12 && (strncmp("HTTP/", payload, 5) == 0)) {
     char http_code[5];
@@ -12,7 +14,7 @@ const int is_http_res(const char * const payload, const int len)
   return 0;
 }
 
-const int is_http_req(const char * const payload, const int len)
+int is_http_req(const char * const payload, const int len)
 {
   if (strncmp("GET",     payload, 3) &&
       strncmp("PUT",     payload, 3) &&
@@ -28,7 +30,7 @@ const int is_http_req(const char * const payload, const int len)
   }
 }
 
-const int is_http_packet(const char * const payload, const int len)
+int is_http_packet(const char * const payload, const int len)
 {
   return (is_http_res(payload, len) || is_http_req(payload, len));
 }
