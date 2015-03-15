@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
       if (port) {
         /* parse as service entry */
-        if (*str == '\0' || *str != '=') {
+        if (*str == '\0' || *str != '=' || *(str+1) == '\0') {
           printf("Specify the name of the service\n");
           return 1;
         } else {
