@@ -12,90 +12,18 @@
 
 #include <ifaddrs.h>
 
-#include "dev_addr.h"
+#include "network_struct.h"
 #include "pcap_conf.h"
+#include "dev_addr.h"
+#include "http_packet_parser.h"
 #include "http_post.h"
 #include "json_event.h"
 #include "json_batch.h"
-#include "network_struct.h"
 
 #define SNAP_LEN 16 * 1024
 #define BATCH_LEN 64 * 1024
 
 void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
-
-const int get_http_code(const char * const payload, const int len);
-const char * get_http_method(const char * const payload, const int len);
-void get_ascii_payload(char * const buffer, const char *payload, const int len);
-
-const int get_http_code(const char * const payload, const int len)
-{
-  if (len >= 12 && (strncmp("HTTP/", payload, 5) == 0)) {
-    char http_code[5];
-    memcpy(http_code, &payload[9], 4);
-    http_code[4] = '\0';
-    return atoi(http_code);
-  }
-  return 0;
-}
-
-const char * get_http_method(const char * const payload, const int len)
-{
-  if (len >= 7) {
-    if (!strncmp("GET", payload, 3)) {
-      return "GET";
-    } else if (!strncmp("PUT", payload, 3)) {
-      return "GET";
-    } else if (!strncmp("POST", payload, 4)) {
-      return "POST";
-    } else if (!strncmp("HEAD", payload, 4)) {
-      return "HEAD";
-    } else if (!strncmp("TRACE", payload, 5)) {
-      return "TRACE";
-    } else if (!strncmp("DELETE", payload, 6)) {
-      return "DELETE";
-    } else if (!strncmp("CONNECT", payload, 7)) {
-      return "CONNECT";
-    } else if (!strncmp("OPTIONS", payload, 7)) {
-      return "OPTIONS";
-    }
-  }
-
-  return NULL;
-}
-
-void get_ascii_payload(char * const buffer, const char *payload, const int len)
-{
-  int i;
-  const char *pay_ptr = payload;
-  char *buf_ptr = buffer;
-
-  for (i = 0; i < len; ++i) {
-    if (isprint(*pay_ptr)) {
-      /* escape quotes */
-      if (*pay_ptr == '\"' || *pay_ptr == '\\') {
-        *buf_ptr = '\\';
-        ++buf_ptr;
-      }
-
-      *buf_ptr = *pay_ptr;
-      ++buf_ptr;
-    } else if (*pay_ptr == '\n') {
-      *buf_ptr = '\\';
-      ++buf_ptr;
-      *buf_ptr = 'n';
-      ++buf_ptr;
-    } else if (*pay_ptr != '\r') {
-      *buf_ptr = '.';
-      ++buf_ptr;
-    }
-    ++pay_ptr;
-  }
-
-  *buf_ptr = '\0';
-
-  return;
-}
 
 void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 {
@@ -130,19 +58,13 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   if (payload_len == 0)
     return;
 
-  const char *http_method = get_http_method(payload, payload_len);
-  const int http_code = get_http_code(payload, payload_len);
-
   // ensure it's the start of a http packet
-  // TODO: move this parsing logic into node server
-  if (!http_method && !http_code)
+  if (!is_http_packet(payload, payload_len))
     return;
 
-  /*
   // ensure it's a relevant packet (registered service)
   if (!match_services(conf, ip->src_ip_addr, tcp->src_port) && !match_services(conf, ip->dst_ip_addr, tcp->dst_port))
     return;
-  */
 
   printf("\n\nPacket #%d:\n", ++count);
   printf("Packet ID:    %hu\n", ip->id);
@@ -150,15 +72,6 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   printf("To:           %s:%d\n", inet_ntoa(ip->dst_ip_addr), ntohs(tcp->dst_port));
   printf("Seq #:        %u\n", tcp->seq_num);
   printf("Ack #:        %u\n", tcp->ack_num);
-
-/*
-  // TODO: remove this once parsing logic moved into node server
-  if (http_method)
-    printf("HTTP Method:  %s\n", http_method);
-  if (http_code)
-    printf("HTTP Code:    %d\n", http_code);
-*/
-
   printf("Payload Size: %d bytes\n", payload_len);
 
 
@@ -175,12 +88,6 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   event_offset = append_event_json_int(event_buf, buf_len, event_offset, "src_port", ntohs(tcp->src_port));
   event_offset = append_event_json_str(event_buf, buf_len, event_offset, "dst_ip", inet_ntoa(ip->dst_ip_addr));
   event_offset = append_event_json_int(event_buf, buf_len, event_offset, "dst_port", ntohs(tcp->dst_port));
-/*
-  if (http_method)
-    event_offset = append_event_json_str(event_buf, buf_len, event_offset, "http_method", http_method);
-  if (http_code)
-    event_offset = append_event_json_int(event_buf, buf_len, event_offset, "http_code", http_code);
-*/
   event_offset = append_event_json_str(event_buf, buf_len, event_offset, "payload", payload_buffer);
   event_offset = close_event_json(event_buf, buf_len, event_offset);
 
@@ -204,11 +111,13 @@ int main(int argc, char **argv)
   bpf_u_int32 net;
 
   if (argc < 2) {
+    /* require at least a processing server url to be provided*/
     printf("usage: agent <url> [<port>=<service>...] <dev>\n");
     return 1;
   } else {
     snprintf(conf.url, PCAP_URL_LEN, "http://%s/event", argv[1]);
   }
+
   if (argc > 2) {
     conf.service_len = 0;
     int i;
@@ -216,7 +125,9 @@ int main(int argc, char **argv)
     char * str;
     for (i = 2; i < argc; ++i) {
       port = strtol(argv[i], &str, 10);
+
       if (port) {
+        /* parse as service entry */
         if (*str == '\0') {
           printf("Specify the name of the service\n");
           return 1;
@@ -227,6 +138,7 @@ int main(int argc, char **argv)
           ++conf.service_len;
         }
       } else {
+        /* parse as device */
         if (dev) {
           printf("Only one device can be specified!\n");
           return 1;
@@ -237,6 +149,7 @@ int main(int argc, char **argv)
     }
   }
 
+  /* attempt to find device if none provided */
   if (!dev) {
     dev = pcap_lookupdev(pcap_errbuf);
     if (dev == NULL) {
