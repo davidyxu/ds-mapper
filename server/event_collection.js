@@ -1,5 +1,7 @@
 var MongoClient = require('mongodb').MongoClient;
 var qs = require('querystring');
+
+var HTTP_METHODS = ["GET", "PUT", "POST", "HEAD", "TRACE", "DELETE", "CONNECT", "OPTIONS"];
 var db_url;
 
 function EventCollection() {};
@@ -20,17 +22,22 @@ EventCollection.prototype.process = function(agent_ip, services, events) {
     var headerArr = rawHeader.split("\n");
     var firstLine = headerArr.shift().split(" ");
 
+    var method = null;
+    var code = null;
+
     var path = null;
     var query = null;
     var version = null;
 
-    if (events[i].http_method && firstLine.length) {
-      var uri = firstLine[1].split("?");
+    if (HTTP_METHODS.indexOf(firstLine[0]) === -1) {
+      version = firstLine[0];
+      code = firstLine[1];
+    } else {
+      method = firstLine[0];
+      uri = firstLine[1].split("?");
 
       path = uri[0];
       if (uri[1]) query = qs.parse(uri[1]);
-    } else if (events[i].http_code) {
-      version = firstLine[0];
     }
 
     var headers = {};
@@ -52,8 +59,8 @@ EventCollection.prototype.process = function(agent_ip, services, events) {
       source: events[i].src_ip,
       target: events[i].dst_ip,
 
-      method: events[i].http_method,
-      code: events[i].http_code,
+      method: method,
+      code: code,
 
       path: path,
       query: query,

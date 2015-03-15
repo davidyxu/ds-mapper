@@ -138,9 +138,11 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   if (!http_method && !http_code)
     return;
 
+  /*
   // ensure it's a relevant packet (registered service)
   if (!match_services(conf, ip->src_ip_addr, tcp->src_port) && !match_services(conf, ip->dst_ip_addr, tcp->dst_port))
     return;
+  */
 
   printf("\n\nPacket #%d:\n", ++count);
   printf("Packet ID:    %hu\n", ip->id);
@@ -149,11 +151,13 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   printf("Seq #:        %u\n", tcp->seq_num);
   printf("Ack #:        %u\n", tcp->ack_num);
 
+/*
   // TODO: remove this once parsing logic moved into node server
   if (http_method)
     printf("HTTP Method:  %s\n", http_method);
   if (http_code)
     printf("HTTP Code:    %d\n", http_code);
+*/
 
   printf("Payload Size: %d bytes\n", payload_len);
 
@@ -171,12 +175,12 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   event_offset = append_event_json_int(event_buf, buf_len, event_offset, "src_port", ntohs(tcp->src_port));
   event_offset = append_event_json_str(event_buf, buf_len, event_offset, "dst_ip", inet_ntoa(ip->dst_ip_addr));
   event_offset = append_event_json_int(event_buf, buf_len, event_offset, "dst_port", ntohs(tcp->dst_port));
-
+/*
   if (http_method)
     event_offset = append_event_json_str(event_buf, buf_len, event_offset, "http_method", http_method);
   if (http_code)
     event_offset = append_event_json_int(event_buf, buf_len, event_offset, "http_code", http_code);
-
+*/
   event_offset = append_event_json_str(event_buf, buf_len, event_offset, "payload", payload_buffer);
   event_offset = close_event_json(event_buf, buf_len, event_offset);
 
@@ -210,7 +214,7 @@ int main(int argc, char **argv)
     int i;
     long int port;
     char * str;
-    for (i = 1; i < argc; ++i) {
+    for (i = 2; i < argc; ++i) {
       port = strtol(argv[i], &str, 10);
       if (port) {
         if (*str == '\0') {

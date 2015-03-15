@@ -15,7 +15,7 @@ app.post('/event', bodyParser.json(), function(req, res) {
   if (!req.body) {
     res.status(400).send("bad data\n");
   } else {
-    EventCollection.process(req.body.dev_ip, req.body.serivces, req.body.data);
+    EventCollection.process(req.body.dev_ip, req.body.services, req.body.data);
     res.send('ok\n');
   }
 });
