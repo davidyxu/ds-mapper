@@ -62,7 +62,7 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
     return;
 
   // ensure it's a relevant packet (registered service)
-  if (!match_services(conf, ip->src_ip_addr, tcp->src_port) && !match_services(conf, ip->dst_ip_addr, tcp->dst_port))
+  if (!match_services(conf, ip->src_ip_addr, ntohs(tcp->src_port)) && !match_services(conf, ip->dst_ip_addr, ntohs(tcp->dst_port)))
     return;
 
   printf("\n\nPacket #%d:\n", ++count);

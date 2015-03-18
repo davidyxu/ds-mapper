@@ -19,6 +19,6 @@ struct pcap_conf {
   char url[PCAP_URL_LEN];
 };
 
-int match_services(const struct pcap_conf * const conf, struct in_addr addr, u_int port);
+int match_services(const struct pcap_conf * const conf, struct in_addr addr, u_short port);
 
 #endif

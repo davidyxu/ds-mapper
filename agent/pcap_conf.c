@@ -1,6 +1,6 @@
 #include "pcap_conf.h"
 
-int match_services(const struct pcap_conf * const conf, struct in_addr addr, u_int port)
+int match_services(const struct pcap_conf * const conf, struct in_addr addr, u_short port)
 {
   if (addr.s_addr != conf->dev_addr.s_addr)
     return 0;
