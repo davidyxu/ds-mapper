@@ -17,7 +17,6 @@ EventCollection.prototype.process = function(agent_ip, services, events) {
 
   var processedEvents = [];
   for (var i = 0; i < events.length; i++) {
-
     var rawHeader = events[i].payload.split("\n\n")[0];
     var headerArr = rawHeader.split("\n");
     var firstLine = headerArr.shift().split(" ");
@@ -37,13 +36,13 @@ EventCollection.prototype.process = function(agent_ip, services, events) {
       uri = firstLine[1].split("?");
 
       path = uri[0];
-      if (uri[1]) query = qs.parse(uri[1]);
+      if (uri[1]) query = uri[1];
     }
 
     var headers = {};
     headerArr.forEach(function(header) {
       var split_header = header.split(": ");
-      headers[split_header[0]] = split_header[1];
+      headers[split_header[0].replace(/\./g, '_')] = split_header[1];
     });
 
     var httpEvent = {
@@ -69,10 +68,10 @@ EventCollection.prototype.process = function(agent_ip, services, events) {
 
     // replace source/target with appropriate service
     for (var key in services) {
-      if (events[i].src_ip === agent_ip && services.hasOwnProperty(events[i].src_port))
-        httpEvent.source = services[events[i].src_port];
-      else if (events[i].dst_ip === agent_ip && services.hasOwnProperty(events[i].dst_port))
-        httpEvent.target = services[events[i].dst_port];
+      if (events[i].src_ip === agent_ip && services[key] === events[i].src_port)
+        httpEvent.source = key;
+      else if (events[i].dst_ip === agent_ip && services[key] === events[i].dst_port)
+        httpEvent.target = key;
     }
 
     processedEvents.push(httpEvent);
