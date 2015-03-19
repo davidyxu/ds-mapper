@@ -33,17 +33,6 @@ app.get('/data', function(req, res) {
   });
 });
 
-app.post('/register', function(req, res) {
-  // { service_name: {
-  //   ip: XXX.XXX.XXX.XXX
-  //   port: opt
-  //   timestamp_start: opt
-  //   timestamp_end: opt
-  //   }
-  // }
-  // updates all source/target to service name
-});
-
 EventCollection.init(function() {
   var server = app.listen(9999, function () {
 
