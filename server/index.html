@@ -8,15 +8,18 @@
         stroke-width: 1.5px;
       }
 
-      #licensing {
-        fill: green;
-      }
-
-      .link.GET {
+      .link.request.c2 {
         stroke: green;
       }
 
-      .link.200 {
+      .link.request.c3 {
+        stroke: blue;
+      }
+
+      .link.request.GET {
+      }
+
+      .link.response {
         stroke-dasharray: 0,2 1;
       }
 
@@ -61,10 +64,9 @@
         var svg = d3.select("body").append("svg")
           .attr("width", width)
           .attr("height", height);
-
         // Per-type markers, as they don't inherit styles.
         svg.append("defs").selectAll("marker")
-          .data(["suit", "licensing", "resolved"])
+          .data(["request", "response"])
           .enter().append("marker")
           .attr("id", function(d) { return d; })
           .attr("viewBox", "0 -5 10 10")
@@ -79,8 +81,21 @@
         var path = svg.append("g").selectAll("path")
           .data(force.links())
           .enter().append("path")
-          .attr("class", function(d) { return "link " + d.type; })
-          .attr("marker-end", function(d) { return "url(#" + d.type + ")"; });
+          .attr("class", function(d) {
+            var classes = ["link"];
+            classes.push(d.method? "request" : "response");
+            if (d.method)
+              classes.push(d.method);
+            if (d.code) {
+              classes.push("c" + Math.floor(d.code / 100)); // expect c2, c3, c4, c5
+              classes.push("c" + d.code); // full code
+            }
+            return classes.join(" ");
+          })
+          .attr("marker-end", function(d) {
+            var type = d.method ? "request" : "response";
+            return "url(#" + type + ")";
+          });
 
         var circle = svg.append("g").selectAll("circle")
           .data(force.nodes())
