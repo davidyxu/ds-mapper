@@ -8,7 +8,7 @@ function EventCollection() {};
 
 EventCollection.prototype.find = function(options, callback) {
   options = options || {};
-  return this.collection.find(options).toArray(callback);
+  return this.eventCollection.find(options).toArray(callback);
 };
 
 EventCollection.prototype.process = function(agent_ip, services, events) {
@@ -77,7 +77,7 @@ EventCollection.prototype.process = function(agent_ip, services, events) {
     processedEvents.push(httpEvent);
   }
 
-  this.collection.insert(processedEvents, function(err, result) {
+  this.eventCollection.insert(processedEvents, function(err, result) {
     if (err) console.log(err);
     if (result) console.log(result);
   });
@@ -90,12 +90,82 @@ EventCollection.prototype.close = function() {
   };
 };
 
+/*
+  {
+    "33_33_33_10": {
+      "33_33_33_1:80": {
+        total_requests: X,
+        "/": 3,
+        "/test": 4
+      }
+    }
+  }
+*/
+
+EventCollection.prototype.reduce = function(events) {
+  var reqBatch = {};
+  var resBatch = {};
+  var isRequest = false;
+
+  events.forEach(function(e) {
+    var batch, src, dst;
+    if (e.method)
+      isRequest = true;
+    if (isRequest) {
+      batch = reqBatch;
+      src = e.src_ip;
+      dst = e.dst_ip + ":" + e.dst_port;
+    else { // response
+      batch = resBatch;
+      src = e.src_ip + ":" + e.src_ip;
+      dst = e.dst_ip;
+    }
+
+    if (!batch[src])
+      batch[src] = {};
+    if (!batch[src][dst])
+      batch[src][dst] = { total_requests = 0, paths = {} };
+
+    ++batch[src][dst].total_requests;
+
+    if (!batch[src][dst].paths[e.path])
+      batch[src][dst].paths[e.path] = 1;
+    else
+      ++batch[src][dst].paths[e.path];
+
+    if (isRequest) {
+      batch[src][dst].methods = {};
+
+      if (!batch[src][dst].methods[e.method])
+        batch[src][dst].methods[e.method] = 1;
+      else
+        ++reqBatch[src][dst].methods[e.method];
+    } else {
+      batch[src][dst].codes = {};
+
+      if (!batch[src][dst].codes[e.code])
+        batch[src][dst].codes[e.code] = 1;
+      else
+        ++reqBatch[src][dst].codes[e.code];
+    }
+  });
+
+  this.reqBatchCollection.insert(reqBatch);
+  this.resBatchCollection.insert(resBatch);
+};
+
 EventCollection.prototype.init = function(callback) {
   MongoClient.connect(db_url, function(err, db) {
     if (err) throw err;
 
     this.db = db;
-    this.collection = db.collection('events');
+    this.eventCollection = db.collection('events');
+
+    this.reqEventCollection = db.collection('request_event');
+    this.resEventCollection = db.collection('response_event');
+
+    this.reqBatchCollection = db.collection('request_batch');
+    this.resBatchCollection = db.collection('response_batch');
 
     console.log("connected");
 
