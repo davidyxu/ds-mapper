@@ -115,7 +115,7 @@ EventCollection.prototype.reduce = function(events) {
       batch = reqBatch;
       src = e.src_ip;
       dst = e.dst_ip + ":" + e.dst_port;
-    else { // response
+    } else { // response
       batch = resBatch;
       src = e.src_ip + ":" + e.src_ip;
       dst = e.dst_ip;
@@ -124,7 +124,7 @@ EventCollection.prototype.reduce = function(events) {
     if (!batch[src])
       batch[src] = {};
     if (!batch[src][dst])
-      batch[src][dst] = { total_requests = 0, paths = {} };
+      batch[src][dst] = { total_requests: 0, paths: {} };
 
     ++batch[src][dst].total_requests;
 
