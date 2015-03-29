@@ -24,8 +24,12 @@ REQUIREMENTS
   nodejs
   d3.js
 
+  Ubuntu
+  * sudo apt-get install libcurl4-openssl-dev
+  * sudo apt-get install libpcap-dev
+
 AGENT
-  BUILD: cc -Wall agent.c pcap_conf.c dev_addr.c http_packet_parser.c http_post.c json_event.c json_batch.c -lpcap -lcurl -o agent_mac
+  run make from agent directory
   USAGE: ./agent <PORT_1=SERVICE_NAME_1> ... <PORT_N=SERVICE_NAME_N> <dev> (dev optional)
 
 RUN SERVER
