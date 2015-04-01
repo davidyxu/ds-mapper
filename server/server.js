@@ -22,28 +22,28 @@ app.post('/event', bodyParser.json({ limit: "5mb" }), function(req, res) {
 
 app.get('/req/events', function(req, res) {
   EventCollection.find("reqEventCollection", req.query, function(err, docs) {
-    console.log(err);
+    if (err) console.log(err);
     res.send(docs);
   });
 });
 
 app.get('/req/batches', function(req, res) {
   EventCollection.find("reqBatchCollection", req.query, function(err, docs) {
-    console.log(err);
+    if (err) console.log(err);
     res.send(docs);
   });
 });
 
 app.get('/res/events', function(req, res) {
   EventCollection.find("resEventCollection", req.query, function(err, docs) {
-    console.log(err);
+    if (err) console.log(err);
     res.send(docs);
   });
 });
 
 app.get('/res/batches', function(req, res) {
   EventCollection.find("resBatchCollection", req.query, function(err, docs) {
-    console.log(err);
+    if (err) console.log(err);
     res.send(docs);
   });
 });
