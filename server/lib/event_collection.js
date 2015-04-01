@@ -20,8 +20,9 @@ EventCollection.prototype.close = function() {
 };
 
 EventCollection.prototype.process = function(agentIP, services, events) {
-  var req = { events: [], batch: {} };
-  var res = { events: [], batch: {} };
+  var time = utils.unixTime();
+  var req = { events: [], batch: {}, time: time };
+  var res = { events: [], batch: {}, time: time };
 
   events.forEach(function(e) {
     var group, src, dst;

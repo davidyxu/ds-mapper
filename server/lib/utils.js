@@ -4,6 +4,10 @@ function httpMethods() {
   return HTTP_METHODS;
 };
 
+function unixTime() {
+  return Math.floor(Date.now() / 1000);
+};
+
 // mongoDB does not accept '.' in keys
 function mongoSanitize(key) {
   return key ? key.replace(/\./g, '_') : "";
