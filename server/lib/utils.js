@@ -1,5 +1,4 @@
 var HTTP_METHODS = ["GET", "PUT", "POST", "HEAD", "TRACE", "DELETE", "CONNECT", "OPTIONS"];
-
 function httpMethods() {
   return HTTP_METHODS;
 };
@@ -13,6 +12,14 @@ function mongoSanitize(key) {
   return key ? key.replace(/\./g, '_') : "";
 };
 
+// parses http payload and returns information of interest
+// version: string, http protocol version
+// isRequest: bool, true if payload is a request
+// method: string, http method
+// code: int, http response code
+// path: string, uri path
+// query: string, uri query
+// header: object, http header
 function parsePayload(rawPayload) {
   var payload = {}
 
@@ -23,7 +30,7 @@ function parsePayload(rawPayload) {
   if (HTTP_METHODS.indexOf(firstLine[0]) === -1) {
     payload.isRequest = false;
     payload.version = firstLine[0];
-    payload.code = firstLine[1];
+    payload.code = parseInt(firstLine[1]);
   } else {
     payload.isRequest = true;
     payload.method = firstLine[0];
