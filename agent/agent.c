@@ -21,7 +21,7 @@
 #include "json_batch.h"
 
 #define SNAP_LEN 16 * 1024
-#define BATCH_LEN 64 * 1024
+#define BATCH_LEN 256 * 1024
 
 void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 
