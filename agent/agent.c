@@ -74,14 +74,16 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   printf("Payload Size: %d bytes\n", payload_len);
 
 
-  char payload_buffer[(2 * payload_len) + 1]; /* use double payload_len in case of escaped characters */
+  // use double payload_len in case of escaped characters
+  char payload_buffer[(2 * payload_len) + 1];
+
   get_ascii_payload(payload_buffer, payload, payload_len);
 
-  const u_int buf_len = SNAP_LEN + 1024; /* give extra space for json formatting */
+  const u_int buf_len = SNAP_LEN + 1024; // give extra space for json formatting
   char event_buf[buf_len];
   int event_offset = 0;
 
-  /* build event json */
+  // build event json
   event_offset = append_event_json_int(event_buf, buf_len, event_offset, "timestamp", (int)time(NULL));
   event_offset = append_event_json_str(event_buf, buf_len, event_offset, "src_ip", inet_ntoa(ip->src_ip_addr));
   event_offset = append_event_json_int(event_buf, buf_len, event_offset, "src_port", ntohs(tcp->src_port));
@@ -90,7 +92,7 @@ void handle_packet(u_char *args, const struct pcap_pkthdr *header, const u_char 
   event_offset = append_event_json_str(event_buf, buf_len, event_offset, "payload", payload_buffer);
   event_offset = close_event_json(event_buf, buf_len, event_offset);
 
-  /* append to batch json */
+  // append to batch json
   batch_offset = append_batch_event(batch_buf, BATCH_LEN, batch_offset, event_buf, event_offset, conf);
 
   return;
@@ -110,7 +112,7 @@ int main(int argc, char **argv)
   bpf_u_int32 net;
 
   if (argc < 2) {
-    /* require at least a processing server url to be provided*/
+    // require at least a processing server url to be provided
     printf("usage: agent <url> [<port>=<service>...] <dev>\n");
     return 1;
   } else {
@@ -126,7 +128,7 @@ int main(int argc, char **argv)
       port = strtol(argv[i], &str, 10);
 
       if (port) {
-        /* parse as service entry */
+        // parse as service entry
         if (*str == '\0' || *str != '=' || *(str+1) == '\0') {
           printf("Specify the name of the service\n");
           return 1;
@@ -137,7 +139,7 @@ int main(int argc, char **argv)
           ++conf.service_len;
         }
       } else {
-        /* parse as device */
+        // parse as device
         if (dev) {
           printf("Only one device can be specified!\n");
           return 1;
@@ -148,7 +150,7 @@ int main(int argc, char **argv)
     }
   }
 
-  /* attempt to find device if none provided */
+  // attempt to find device if none provided
   if (!dev) {
     dev = pcap_lookupdev(pcap_errbuf);
     if (dev == NULL) {

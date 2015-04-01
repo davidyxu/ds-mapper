@@ -15,10 +15,10 @@ struct in_addr get_dev_addr(const char * const dev)
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
 
-    //Type of address to retrieve - IPv4 IP address
+    // Type of address to retrieve - IPv4 IP address
     addr.ifr_addr.sa_family = AF_INET;
 
-    //Copy the interface name in the ifreq structure
+    // Copy the interface name in the ifreq structure
     strncpy(addr.ifr_name , dev , IFNAMSIZ-1);
 
     ioctl(fd, SIOCGIFADDR, &addr);
