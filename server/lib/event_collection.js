@@ -1,5 +1,6 @@
 var MongoClient = require("mongodb").MongoClient;
 var utils = require("./utils");
+var log = require('./logger')("EVENTS");
 var qs = require("querystring");
 
 var db_url;
@@ -103,24 +104,24 @@ EventCollection.prototype.process = function(agentIP, services, events) {
   });
 
   // temp debugging lines
-  console.log("REQUESTS");
+  log("REQUESTS");
   console.log(JSON.stringify(req.batch));
-  console.log("RESPONSES");
+  log("RESPONSES");
   console.log(JSON.stringify(res.batch));
   this.reqEventCollection.insert(req.events, function(err, result) {
-    if (err) console.log(err);
+    if (err) log(err);
   });
 
   this.resEventCollection.insert(res.events, function(err, result) {
-    if (err) console.log(err);
+    if (err) log(err);
   });
 
   this.reqBatchCollection.insert(req.batch, function(err, result) {
-    if (err) console.log(err);
+    if (err) log(err);
   });
 
   this.resBatchCollection.insert(res.batch, function(err, result) {
-    if (err) console.log(err);
+    if (err) log(err);
   });
 };
 
@@ -135,7 +136,7 @@ EventCollection.prototype.init = function(callback) {
     this.reqBatchCollection = db.collection('request_batch');
     this.resBatchCollection = db.collection('response_batch');
 
-    console.log("connected");
+    log("Connected to database");
 
     if (callback) callback();
   }.bind(this));
