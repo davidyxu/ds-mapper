@@ -20,15 +20,30 @@ app.post('/event', bodyParser.json({ limit: "5mb" }), function(req, res) {
   }
 });
 
-app.get('/data', function(req, res) {
-  console.log(req.query)
-
-  var query = req.query;
-
-  EventCollection.find(query, function(err, docs) {
+app.get('/req/events', function(req, res) {
+  EventCollection.find("reqEventCollection", req.query, function(err, docs) {
     console.log(err);
-    console.log(docs);
+    res.send(docs);
+  });
+});
 
+app.get('/req/batches', function(req, res) {
+  EventCollection.find("reqBatchCollection", req.query, function(err, docs) {
+    console.log(err);
+    res.send(docs);
+  });
+});
+
+app.get('/res/events', function(req, res) {
+  EventCollection.find("resEventCollection", req.query, function(err, docs) {
+    console.log(err);
+    res.send(docs);
+  });
+});
+
+app.get('/res/batches', function(req, res) {
+  EventCollection.find("resBatchCollection", req.query, function(err, docs) {
+    console.log(err);
     res.send(docs);
   });
 });

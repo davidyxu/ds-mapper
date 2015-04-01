@@ -127,9 +127,7 @@ EventCollection.prototype.process = function(agentIP, services, events) {
 EventCollection.prototype.init = function(callback) {
   MongoClient.connect(db_url, function(err, db) {
     if (err) throw err;
-
     this.db = db;
-    this.eventCollection = db.collection('events');
 
     this.reqEventCollection = db.collection('request_event');
     this.resEventCollection = db.collection('response_event');
